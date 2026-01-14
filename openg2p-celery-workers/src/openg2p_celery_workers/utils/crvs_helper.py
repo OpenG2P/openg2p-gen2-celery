@@ -112,6 +112,133 @@ class CrvsHelper(HelperInterface):
         self, 
         data_provider: G2PExternalDataProvider,
     ) -> List[Response]:
+        # Mock response for testing
+        mock_response_data = {
+            "signature": "Signature:  namespace=\"spdci\", kidId=\"{sender_id}|{unique_key_id}|{algorithm}\", algorithm=\"ed25519\", created=\"1606970629\", expires=\"1607030629\", headers=\"(created) (expires) digest\", signature=\"Base64(signing content)",
+            "header": {
+                "version": "1.0.0",
+                "message_id": "789",
+                "message_ts": "2022-12-04T17:20:07-04:00",
+                "action": "on-search",
+                "status": "rcvd",
+                "status_reason_code": "rjct.version.invalid",
+                "status_reason_message": "string",
+                "total_count": 21800,
+                "completed_count": 50,
+                "sender_id": "registry.example.org",
+                "receiver_id": "spmis.example.org",
+                "is_msg_encrypted": False,
+                "meta": {}
+            },
+            "message": {
+                "transaction_id": "XZFHYTY",
+                "correlation_id": "ABC9876543210",
+                "search_response": [
+                {
+                    "reference_id": "SDFRTYUX",
+                    "timestamp": "2022-12-04T17:20:07-04:00",
+                    "status": "rcvd",
+                    "status_reason_code": "rjct.reference_id.invalid",
+                    "status_reason_message": "string",
+                    "data": {
+                    "version": "1.0.0",
+                    "reg_type": "ns:org:RegistryType:Social",
+                    "reg_record_type": "spdci-extensions-dci:Member",
+                    "reg_records": {
+                        "type": "object",
+                        "description": "1. Attributes of a person to create fetch records, create verifiable credentials or use in search criteria.\n3. Allows Country/Registry specific implementation extensions using Attribute Name/Value pairs.\n\n@context: https://schema.spdci.org/core/v1/data/Member.jsonld <br>\n@type: \"@context\" <br>\n",
+                        "example": {
+                        "@context": {
+                            "spdci": "https://schema.spdci.org/core/v1/data",
+                            "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+                            "xsd": "http://www.w3.org/2001/XMLSchema#",
+                            "owl": "http://www.w3.org/2002/07/owl#",
+                            "common": "https://schema.spdci.org/common/v1/"
+                        },
+                        "@id": "https://example.org/sr_person/847951632",
+                        "@type": "spdci:member",
+                        "member_identifier": [
+                            {
+                            "@type": "Identifier",
+                            "identifier_type": "UIN",
+                            "identifier_value": "42343545654"
+                            }
+                        ],
+                        "demographic_info": {
+                            "@type": "SRPerson",
+                            "identifier": [
+                            {
+                                "@type": "Identifier",
+                                "identifier_type": "NationalID",
+                                "identifier_value": "9876543210"
+                            }
+                            ],
+                            "name": {
+                            "@type": "Name",
+                            "surname": "Smith",
+                            "given_name": "Alice",
+                            "prefix": "Ms.",
+                            "suffix": ""
+                            },
+                            "sex": "female",
+                            "birth_date": "1985-05-20"
+                        },
+                        "related_person": [
+                            {
+                            "@type": "RelatedPerson",
+                            "relationship_type": "spouse",
+                            "related_member": {
+                                "@type": "Member",
+                                "@id": "https://example.org/member/123456789",
+                                "member_identifier": "M123456789"
+                            }
+                            },
+                            {
+                            "@type": "RelatedPerson",
+                            "relationship_type": "child",
+                            "related_member": {
+                                "@type": "Member",
+                                "@id": "https://example.org/member/987654322",
+                                "spdci:member_identifier": "M987654322"
+                            }
+                            }
+                        ],
+                        "is_disabled": False,
+                        "marital_status": "married",
+                        "employment_status": "employed",
+                        "occupation": "teacher",
+                        "income_level": "middle",
+                        "language_code": [
+                            "en",
+                            "es"
+                        ],
+                        "education_level": "bachelor",
+                        "additional_attributes": [
+                            {
+                            "extra_work": "volunteer"
+                            }
+                        ],
+                        "registration_date": "2022-01-10T08:00:00Z",
+                        "last_updated": "2023-06-15T10:00:00Z"
+                        }
+                    }
+                    },
+                    "pagination": {
+                    "page_size": 2000,
+                    "page_number": 5,
+                    "total_count": 24250
+                    },
+                    "locale": "eng"
+                }
+                ]
+            }
+            }
+        mock_response = Response()
+        mock_response.status_code = 200
+        mock_response._content = json.dumps(mock_response_data).encode('utf-8')
+        mock_response.headers['Content-Type'] = 'application/json'
+
+        return [mock_response]
 
         if data_provider.polling_url is None:
             raise Exception(f"Polling URL is not configured for {data_provider.provider_name} data provider")
