@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Boolean, DateTime, func
+from sqlalchemy import String, Boolean, DateTime, func, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_fastapi_common.models import BaseORMModel
 
@@ -11,7 +11,8 @@ class G2PExternalDataProvider(BaseORMModel):
 
     provider_id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     provider_name: Mapped[str] = mapped_column(String, nullable=False)
-    polling_url: Mapped[str] = mapped_column(String, nullable=False)
+    polling_base_url: Mapped[str] = mapped_column(String, nullable=False)
+    polling_page_size: Mapped[int] = mapped_column(Integer, nullable=False)
     data_model: Mapped[str] = mapped_column(String, nullable=False)
     helper_class: Mapped[str] = mapped_column(String, nullable=False)
     external_data_q_worker: Mapped[str] = mapped_column(String, nullable=False)
