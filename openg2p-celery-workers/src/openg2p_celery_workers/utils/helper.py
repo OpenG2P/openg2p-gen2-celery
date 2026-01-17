@@ -2,7 +2,7 @@ import requests
 from abc import ABC, abstractmethod
 from requests import Response
 from datetime import datetime
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List, Any
 
 from openg2p_celery_job_models.models import G2PExternalDataProvider
 
@@ -29,25 +29,17 @@ class HelperInterface(ABC):
     def enrich_polling_response(self, response_body: Dict) -> Dict:
         pass
 
+    @abstractmethod
+    def split_reg_records_into_payloads(self, response_body: Dict[str, Any]) -> List[Dict[str, Any]]:
+        pass
+
     def send_registry_ingest_request(
         self,
         data_model: str,
         request_payload: Dict,
         request_headers: Dict,
     ) -> Response:
-        try:
-            response = requests.post(
-                f"{self.registry_ingest_url}?data_model={data_model}",
-                json=request_payload,
-                headers=request_headers,
-                timeout=30,
-            )
-            return response
-
-        except requests.exceptions.RequestException as req_e:
-            raise Exception(f"Network or request error calling registry ingest endpoint: {str(req_e)}")
-        except Exception as e:
-            raise Exception(f"Error occured processing ingest request: {str(e)}")
+        pass
     
     def _get_polling_datetime_range(
         self,

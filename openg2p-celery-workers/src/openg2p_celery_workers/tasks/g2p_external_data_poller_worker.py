@@ -1,3 +1,5 @@
+from copy import deepcopy
+from typing import Any, Dict, List
 import logging
 import uuid
 import requests
@@ -37,43 +39,41 @@ def g2p_external_data_poller_worker(provider_id: str):
 
             polling_helper: HelperInterface = HelperFactory.get_helper(g2p_external_data_provider.helper_class)
             
-            poll_responses: list[Response] = polling_helper.send_polling_request(
+            poll_response: Response = polling_helper.send_polling_request(
                 g2p_external_data_provider
             )
+            poll_response.raise_for_status()
             _logger.info(
-                f"Successfully received data item from {g2p_external_data_provider.polling_url} for provider_id {provider_id}."
+                f"Successfully received data item from {g2p_external_data_provider.provider_name} for provider_id {provider_id}."
             )
-            for poll_response in poll_responses:
-                if poll_response.status_code == 200:
-                    response_body, response_headers = _get_response_body_headers(poll_response)
+            response_body, response_headers = _get_response_body_headers(poll_response)
 
-                    response_body = polling_helper.enrich_polling_response(
-                        response_body
-                    )
-                    g2p_external_data_payload = G2PExternalDataPayload(
-                        payload_id=str(uuid.uuid4()),
-                        payload_json=response_body,
-                        payload_headers=response_headers
-                    )
-                    session.add(g2p_external_data_payload)
+            split_payloads = polling_helper.split_reg_records_into_payloads(response_body)
 
-                    g2p_external_data_queue = G2PExternalDataQueue(
-                        provider_id=provider_id,
-                        payload_id=g2p_external_data_payload.payload_id,
-                        process_status=StatusEnum.PENDING.value,
-                        created_at=func.now()
-                    )
-                    session.add(g2p_external_data_queue)
+            # If split produced nothing (edge case), fallback to inserting original once
+            if not split_payloads:
+                split_payloads = [response_body]
 
-                    g2p_external_data_provider.poll_latest_error_code = None
-                    g2p_external_data_provider.poll_latest_datetime = func.now()
-                    g2p_external_data_provider.poll_latest_success_datetime = func.now()
+            for single_payload in split_payloads:
+                g2p_external_data_payload = G2PExternalDataPayload(
+                    payload_id=str(uuid.uuid4()),
+                    payload_json=single_payload,
+                    payload_headers=response_headers
+                )
+                session.add(g2p_external_data_payload)
 
-                else:
-                    raise Exception(
-                        f"List reponse threw error with status code: {poll_response.status_code}"
-                        )
-                
+                g2p_external_data_queue = G2PExternalDataQueue(
+                    provider_id=provider_id,
+                    payload_id=g2p_external_data_payload.payload_id,
+                    process_status=StatusEnum.PENDING.value,
+                    created_at=func.now()
+                )
+                session.add(g2p_external_data_queue)
+
+            g2p_external_data_provider.poll_latest_error_code = None
+            g2p_external_data_provider.poll_latest_datetime = func.now()
+            g2p_external_data_provider.poll_latest_success_datetime = func.now()
+
             session.commit()
 
         except Exception as e:

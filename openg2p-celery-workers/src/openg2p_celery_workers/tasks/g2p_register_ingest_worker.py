@@ -45,11 +45,14 @@ def g2p_register_ingest_worker(queue_id: str):
             )
 
             if raw_response.status_code == 200:
-                ingest_response = IngestDataResponse(**raw_response.json())
+                ingest_response = raw_response.json()
                 _logger.info(
-                    f"Registry ingestion request successful for queue_id {g2p_external_data_queue.queue_id} successful with status code: {raw_response.status_code}"
+                    f"Registry ingestion request successful for queue_id {g2p_external_data_queue.queue_id} with response : {ingest_response}"
                 )
-                g2p_external_data_queue.registry_ingest_id = ingest_response.response_body.response_payload.ingest_id
+
+                correlation_id = ingest_helper.get_correlation_id(ingest_response)
+
+                g2p_external_data_queue.ingest_correlation_id = correlation_id
                 g2p_external_data_queue.process_number_of_attempts += 1
                 g2p_external_data_queue.process_status = StatusEnum.COMPLETED.value
                 g2p_external_data_queue.process_latest_datetime = func.now()

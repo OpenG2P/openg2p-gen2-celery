@@ -31,9 +31,14 @@ class Settings(BaseSettings):
     # Celery Configuration
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_backend_url: str = "redis://localhost:6379/0"
-    worker_queue: str = "celery_jobs_worker_queue"
+    worker_queue: str = "celery_jobs_queue"
 
     batch_size: int = 2000
     worker_max_attempts: int = 3
 
-    entry_point_start_datetime: str = datetime.now().isoformat()
+    entry_point_start_datetime: str = "2026-01-01T00:00:00Z"
+
+    # CRVS Config
+    openg2p_crvs_client_id: str = "client_id"
+    openg2p_crvs_client_secret: str = "secret"
+    openg2p_crvs_sha_secret: str = ""

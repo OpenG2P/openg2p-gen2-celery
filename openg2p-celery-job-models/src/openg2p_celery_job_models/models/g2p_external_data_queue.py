@@ -20,7 +20,7 @@ class G2PExternalDataQueue(BaseORMModel):
     provider_id: Mapped[str] = mapped_column(String, nullable=False)
     payload_id: Mapped[str] = mapped_column(String, nullable=False)
 
-    registry_ingest_id: Mapped[str] = mapped_column(String, nullable=True)
+    ingest_correlation_id: Mapped[str] = mapped_column(String, nullable=True)
 
     process_status: Mapped[str] = mapped_column(String, default=StatusEnum.PENDING.value, nullable=False)
     process_latest_datetime: Mapped[datetime] = mapped_column(DateTime, nullable=True)
