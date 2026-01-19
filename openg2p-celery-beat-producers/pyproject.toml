@@ -21,6 +21,9 @@ dependencies = [
     "celery",
     "requests",
     "uuid",
+    "psycopg2",
+    "redis",
+    "asyncpg"
 ]
 dynamic = ["version"]
 
