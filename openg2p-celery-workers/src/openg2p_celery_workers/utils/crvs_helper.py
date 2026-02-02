@@ -2,8 +2,6 @@ import json
 
 import hmac
 import hashlib
-import math
-import uuid
 from copy import deepcopy
 from typing import Dict, List, Tuple, Any
 from datetime import datetime
@@ -58,13 +56,14 @@ class CrvsHelper(HelperInterface):
                     "type": "ns:org:QueryType:expression",
                     "value": {
                     "expression": {
-                        "query": {
-                        "dateOfEvent": {
-                            "gte": gte_datetime,
-                            "lte": current_utc_iso
-                        }
-                        }
-                    }
+                                "query": {
+                                    "legalStatuses.REGISTERED.acceptedAt": {
+                                        "type": "range",
+                                        "gte": gte_datetime,
+                                        "lte": current_utc_iso
+                                    }
+                                }
+                            }
                     }
                 },
                 "sort": [
