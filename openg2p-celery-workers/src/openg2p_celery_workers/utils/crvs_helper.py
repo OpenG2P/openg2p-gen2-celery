@@ -160,7 +160,7 @@ class CrvsHelper(HelperInterface):
 
         if not isinstance(search_response, list) or not search_response:
             # Nothing to split
-            return [response_body]
+            return []
 
         payloads: List[Dict[str, Any]] = []
 
@@ -168,10 +168,9 @@ class CrvsHelper(HelperInterface):
             data = (sr_item or {}).get("data") or {}
             reg_records = data.get("reg_records") or []
 
-            # If no reg_records / not a list, keep as-is
+            # If no reg_records / not a list, return empty list
             if not isinstance(reg_records, list) or len(reg_records) == 0:
-                payloads.append(response_body)
-                continue
+                return []
 
             # Split each reg_record into its own payload
             for record in reg_records:

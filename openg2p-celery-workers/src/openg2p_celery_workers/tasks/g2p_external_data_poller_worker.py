@@ -51,8 +51,6 @@ def g2p_external_data_poller_worker(provider_id: str):
             split_payloads = polling_helper.split_reg_records_into_payloads(response_body)
 
             # If split produced nothing (edge case), fallback to inserting original once
-            if not split_payloads:
-                split_payloads = [response_body]
 
             for single_payload in split_payloads:
                 g2p_external_data_payload = G2PExternalDataPayload(
