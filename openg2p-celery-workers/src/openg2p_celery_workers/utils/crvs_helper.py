@@ -38,6 +38,26 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _to_crvs_range_date(value: datetime | str) -> str:
+    """CRVS search range expects calendar dates (YYYY-MM-DD), not full timestamps."""
+    if isinstance(value, datetime):
+        dt = value
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        else:
+            dt = dt.astimezone(timezone.utc)
+        return dt.date().isoformat()
+
+    s = value.strip()
+    if len(s) >= 10 and s[4:5] == "-" and s[7:8] == "-":
+        return s[:10]
+    raise ValueError(f"Cannot parse CRVS range date from: {value!r}")
+
+
+def _utc_today_range_date() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
+
+
 def _fresh_ids() -> tuple[str, str, str]:
     mid = str(uuid.uuid4()).replace("-", "")[:24]
     return mid, mid, mid
@@ -88,13 +108,14 @@ class CrvsHelper(HelperInterface):
             sz = 10
 
         current_utc_iso = _utc_now_iso()
-        gte_datetime = (
-            (data_provider.poll_latest_success_datetime.isoformat(timespec="seconds") + "Z")
+        gte_date = (
+            _to_crvs_range_date(data_provider.poll_latest_success_datetime)
             if data_provider.poll_latest_success_datetime
-            else self.entry_point_start_datetime
+            else _to_crvs_range_date(self.entry_point_start_datetime)
         )
+        lte_date = _utc_today_range_date()
 
-        reg_event_type = (data_provider.reg_event_type or "birth").strip()
+        reg_event_type = (data_provider.reg_event_type or "death").strip()
 
         mid, tid, rid = _fresh_ids()
 
@@ -128,8 +149,8 @@ class CrvsHelper(HelperInterface):
                                         "query": {
                                             "legalStatuses.REGISTERED.acceptedAt": {
                                                 "type": "range",
-                                                "gte": gte_datetime,
-                                                "lte": current_utc_iso,
+                                                "gte": gte_date,
+                                                "lte": lte_date,
                                             }
                                         }
                                     }

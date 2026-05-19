@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     batch_size: int = 2000
     worker_max_attempts: int = 3
 
-    entry_point_start_datetime: str = "2026-01-01T00:00:00Z"
+    entry_point_start_datetime: str = "2026-01-01"
 
     # CRVS Config
     openg2p_crvs_client_id: str = "client_id"
