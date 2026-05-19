@@ -38,24 +38,35 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _to_crvs_range_date(value: datetime | str) -> str:
-    """CRVS search range expects calendar dates (YYYY-MM-DD), not full timestamps."""
+def _parse_to_utc_datetime(value: datetime | str) -> datetime:
     if isinstance(value, datetime):
         dt = value
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        else:
-            dt = dt.astimezone(timezone.utc)
-        return dt.date().isoformat()
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
 
     s = value.strip()
-    if len(s) >= 10 and s[4:5] == "-" and s[7:8] == "-":
-        return s[:10]
-    raise ValueError(f"Cannot parse CRVS range date from: {value!r}")
+    if len(s) == 10 and s[4] == "-" and s[7] == "-":
+        return datetime.fromisoformat(s).replace(tzinfo=timezone.utc)
+
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    dt = datetime.fromisoformat(s)
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
-def _utc_today_range_date() -> str:
-    return datetime.now(timezone.utc).date().isoformat()
+def _to_crvs_range_gte(value: datetime | str) -> str:
+    """CRVS range lower bound, e.g. 2026-05-19T10:30:00.000Z."""
+    dt = _parse_to_utc_datetime(value)
+    return f"{dt.strftime('%Y-%m-%dT%H:%M:%S')}.000Z"
+
+
+def _utc_now_range_lte() -> str:
+    """CRVS range upper bound at current UTC, e.g. 2026-05-19T16:50:59.999Z."""
+    dt = datetime.now(timezone.utc)
+    return f"{dt.strftime('%Y-%m-%dT%H:%M:%S')}.999Z"
 
 
 def _fresh_ids() -> tuple[str, str, str]:
@@ -108,12 +119,12 @@ class CrvsHelper(HelperInterface):
             sz = 10
 
         current_utc_iso = _utc_now_iso()
-        gte_date = (
-            _to_crvs_range_date(data_provider.poll_latest_success_datetime)
+        gte_ts = (
+            _to_crvs_range_gte(data_provider.poll_latest_success_datetime)
             if data_provider.poll_latest_success_datetime
-            else _to_crvs_range_date(self.entry_point_start_datetime)
+            else _to_crvs_range_gte(self.entry_point_start_datetime)
         )
-        lte_date = _utc_today_range_date()
+        lte_ts = _utc_now_range_lte()
 
         reg_event_type = (data_provider.reg_event_type or "death").strip()
 
@@ -125,7 +136,7 @@ class CrvsHelper(HelperInterface):
                 "message_id": mid,
                 "message_ts": current_utc_iso,
                 "action": "search",
-                "sender_id": "https://integrating-server.com",
+                "sender_id": "OpenCRVS",
                 "sender_uri": "https://{server_url}/on-search",
                 "receiver_id": "crvs",
                 "total_count": 10,
@@ -149,8 +160,8 @@ class CrvsHelper(HelperInterface):
                                         "query": {
                                             "legalStatuses.REGISTERED.acceptedAt": {
                                                 "type": "range",
-                                                "gte": gte_date,
-                                                "lte": lte_date,
+                                                "gte": gte_ts,
+                                                "lte": lte_ts,
                                             }
                                         }
                                     }
