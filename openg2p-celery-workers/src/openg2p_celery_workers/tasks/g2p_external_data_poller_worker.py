@@ -1,10 +1,9 @@
-from copy import deepcopy
-from typing import Any, Dict, List
+from typing import Any
+
 import logging
 import uuid
 import requests
 from requests import Response
-from typing import Tuple, Dict, List
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
 from openg2p_celery_job_models.models import (
@@ -26,7 +25,7 @@ _engine = Engine.get_engine()
 
 @celery_app.task(name="g2p_external_data_poller_worker")
 def g2p_external_data_poller_worker(provider_id: str):
-    _logger.info(f"Processing g2p_external_data_poller_worker")
+    _logger.info(f"Processing g2p_external_data_poller_worker for provider_id: {provider_id}")
     session_maker = sessionmaker(
         bind=_engine, expire_on_commit=False
     )
@@ -39,18 +38,35 @@ def g2p_external_data_poller_worker(provider_id: str):
 
             polling_helper: HelperInterface = HelperFactory.get_helper(g2p_external_data_provider.helper_class)
             
-            poll_response: Response = polling_helper.send_polling_request(
+            poll_responses: list[Response] = polling_helper.send_polling_request(
                 g2p_external_data_provider
             )
-            poll_response.raise_for_status()
+            if not poll_responses:
+                _logger.info(
+                    f"No poll responses returned for {g2p_external_data_provider.provider_name} "
+                    f"(provider_id {provider_id})."
+                )
+
+            split_payloads: list[dict[str, Any]] = []
+            response_headers: dict[str, Any] = {}
+
+            for poll_response in poll_responses:
+                poll_response.raise_for_status()
+                response_body, response_headers = _get_response_body_headers(poll_response)
+                split_payloads.extend(
+                    polling_helper.split_reg_records_into_payloads(response_body)
+                )
+
             _logger.info(
-                f"Successfully received data item from {g2p_external_data_provider.provider_name} for provider_id {provider_id}."
+                f"Successfully polled {g2p_external_data_provider.provider_name} for provider_id "
+                f"{provider_id}: {len(poll_responses)} page(s), {len(split_payloads)} queued record payload(s)."
             )
-            response_body, response_headers = _get_response_body_headers(poll_response)
 
-            split_payloads = polling_helper.split_reg_records_into_payloads(response_body)
-
-            # If split produced nothing (edge case), fallback to inserting original once
+            if not split_payloads:
+                _logger.info(
+                    f"No reg_records split from CRVS response for provider_id {provider_id}; "
+                    "advancing poll watermark after successful HTTP poll."
+                )
 
             for single_payload in split_payloads:
                 g2p_external_data_payload = G2PExternalDataPayload(
@@ -80,10 +96,11 @@ def g2p_external_data_poller_worker(provider_id: str):
             )
             session.rollback()
 
-            g2p_external_data_provider.poll_latest_error_code = str(e)
-            g2p_external_data_provider.poll_latest_datetime = func.now()
+            if g2p_external_data_provider is not None:
+                g2p_external_data_provider.poll_latest_error_code = str(e)
+                g2p_external_data_provider.poll_latest_datetime = func.now()
 
-            session.commit()
+                session.commit()
             # Raise exception for testing
             raise e
 
@@ -92,9 +109,8 @@ def g2p_external_data_poller_worker(provider_id: str):
         )
 
 
-def _get_response_body_headers(response: requests.Response) -> Tuple[Dict, Dict]:
-
-    response_body: Dict = response.json() if response.content else {}
-    response_headers: Dict = dict(response.headers)
+def _get_response_body_headers(response: requests.Response) -> tuple[dict, dict]:
+    response_body: dict = response.json() if response.content else {}
+    response_headers: dict = dict(response.headers)
 
     return response_body, response_headers

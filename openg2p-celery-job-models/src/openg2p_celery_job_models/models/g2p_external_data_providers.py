@@ -13,6 +13,8 @@ class G2PExternalDataProvider(BaseORMModel):
     provider_name: Mapped[str] = mapped_column(String, nullable=False)
     polling_base_url: Mapped[str] = mapped_column(String, nullable=False)
     polling_page_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Vital event for CRVS search_criteria.reg_event_type, e.g. birth | death
+    reg_event_type: Mapped[str] = mapped_column(String(32), nullable=False, server_default="birth")
     data_model: Mapped[str] = mapped_column(String, nullable=False)
     helper_class: Mapped[str] = mapped_column(String, nullable=False)
     external_data_q_worker: Mapped[str] = mapped_column(String, nullable=False)
