@@ -24,7 +24,7 @@ _engine = Engine.get_engine()
 
 @celery_app.task(name="g2p_register_ingest_worker")
 def g2p_register_ingest_worker(queue_id: str):
-    _logger.info(f"Processing g2p_register_ingest_worker")
+    _logger.info("Processing g2p_register_ingest_worker for queue_id: %s", queue_id)
     session_maker = sessionmaker(
         bind=_engine, expire_on_commit=False
     )
