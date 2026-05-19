@@ -25,8 +25,8 @@ class Settings(BaseSettings):
     db_port: int = 5432
     db_dbname: str = "celery_jobs_db"
 
-    # Registry Ingest URL
-    registry_ingest_url: str = "http://localhost:8000/partner/ingest"
+    # Registry Ingest URL (partner route is POST /partner/ingest_data)
+    registry_ingest_url: str = "http://localhost:8000/partner/ingest_data"
 
     # Celery Configuration
     celery_broker_url: str = "redis://localhost:6379/0"
@@ -42,3 +42,7 @@ class Settings(BaseSettings):
     openg2p_crvs_client_id: str = "client_id"
     openg2p_crvs_client_secret: str = "secret"
     openg2p_crvs_sha_secret: str = ""
+
+    crvs_max_pages_per_poll: int = 50
+    crvs_oauth_http_timeout_seconds: float = 60.0
+    crvs_search_http_timeout_seconds: float = 120.0
